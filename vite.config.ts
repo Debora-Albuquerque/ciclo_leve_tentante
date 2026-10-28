@@ -42,10 +42,11 @@ function cicloLeveApiPlugin(): Plugin {
 
 export default defineConfig(() => {
   return {
+    base: process.env.BASE_PATH || '/ciclo_leve_tentante/',
     plugins: [react(), tailwindcss(), cicloLeveApiPlugin()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {
