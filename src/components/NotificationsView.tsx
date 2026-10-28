@@ -55,13 +55,13 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
 
         // Trigger welcome native notification
         new Notification('🌸 CicloLeve • Lembrete Ativado', {
-          body: `Olá, ${profile.name || 'Débora'}! Avisaremos com carinho quando sua janela fértil estiver próxima.`,
+          body: `Olá${profile.name ? `, ${profile.name}` : ''}! Avisaremos com carinho quando sua janela fértil estiver próxima.`,
           icon: '/favicon.ico',
         });
 
         onTriggerSimulatedNotification(
           '🔔 Notificações Ativadas com Sucesso',
-          `Olá, ${profile.name || 'Débora'}! Seus lembretes gentis estão prontos.`,
+          `Olá${profile.name ? `, ${profile.name}` : ''}! Seus lembretes gentis estão prontos.`,
           'tip'
         );
       }

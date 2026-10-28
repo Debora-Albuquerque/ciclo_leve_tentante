@@ -49,9 +49,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
   }
 
   // Ring progress
-  const cycleDay = summary?.currentCycleDay || 1;
+  const cycleDay = summary?.currentCycleDay;
   const cycleLength = profile.cycleLength || 28;
-  const progressPercent = Math.min(100, Math.round((cycleDay / cycleLength) * 100));
+  const progressPercent = cycleDay
+    ? Math.min(100, Math.round((cycleDay / cycleLength) * 100))
+    : 0;
 
   return (
     <div className="space-y-6 pb-20 md:pb-8">
@@ -59,7 +61,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif text-[#2D2A26] font-semibold tracking-tight">
-            Olá, {profile.name || 'Débora'}
+            Olá{profile.name ? `, ${profile.name}` : ''}
           </h1>
           <p className="text-sm text-[#7D736A] mt-0.5">
             {isTrying
@@ -125,14 +127,14 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 Dia {summary?.currentCycleDay ?? '--'}
               </span>
               <span className="text-xs text-[#7A7067] font-medium mt-1">
-                de {profile.cycleLength} dias
+                {summary ? `de ${profile.cycleLength} dias` : 'Aguardando registro'}
               </span>
 
               {/* Status pill */}
               <div
                 className={`mt-2 px-3 py-0.5 rounded-full text-[11px] font-semibold border ${badgeColor}`}
               >
-                {summary?.phaseLabel || 'Calculando...'}
+                {summary?.phaseLabel || 'Sem dados do ciclo'}
               </div>
             </div>
           </div>
@@ -152,7 +154,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 )}
               </div>
               <p className="text-lg font-serif font-semibold text-[#2D2A26] mt-1">
-                {summary?.conceptionChanceLabel || 'Acompanhando'}
+                {summary?.conceptionChanceLabel || 'Sem dados suficientes'}
               </p>
               <p className="text-xs text-[#7D736A] mt-1 leading-relaxed">
                 {summary?.isOvulationToday
@@ -193,7 +195,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                     : '--'}
                 </span>
                 <span className="text-[10px] text-[#558255] font-medium block mt-0.5">
-                  {summary?.isFertileNow ? 'Aberta agora' : '6 dias férteis'}
+                  {summary?.isFertileNow ? 'Aberta agora' : summary ? 'Período estimado' : '--'}
                 </span>
               </div>
 

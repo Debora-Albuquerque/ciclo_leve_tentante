@@ -177,7 +177,7 @@ Apresente a mensagem com esta estrutura limpa e acolhedora:
   } catch (error) {
     console.error("Gemini API error, using warm intelligent fallback:", error);
     // Intelligent local fallback adhering to all rules
-    const name = cycleContext.userName || "Débora";
+    const name = cycleContext.userName || "usuária";
     const cycleDay = cycleContext.currentCycleDay || 14;
     const isFertile = cycleContext.isFertileNow;
     const isOvulation = cycleContext.isOvulationToday;

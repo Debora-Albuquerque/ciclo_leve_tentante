@@ -333,9 +333,9 @@ export default function App() {
       const fallbackMsg: ChatMessage = {
         id: `mod-${Date.now()}`,
         role: 'model',
-        text: `- **Resumo do Ciclo:** Olá, ${profile.name || 'Débora'}! Você está no Dia ${summary?.currentCycleDay || 13} do ciclo, ${summary?.isFertileNow ? 'em sua janela fértil' : 'em acompanhamento normal'}.
-- **Próximos Passos / Dica do Dia:** Observe os sinais naturais do seu corpo (como o muco cervical elástico e transparente) e viva este momento com leveza e sem pressa.
-- **Ação:** Seus dados locais permanecem salvos em segurança no seu aparelho. O que gostaria de registrar hoje?`,
+        text: `- **Resumo do Ciclo:** Olá${profile.name ? `, ${profile.name}` : ''}! Ainda não há dados suficientes para calcular o seu ciclo.
+- **Próximos Passos / Dica do Dia:** Adicione a data da última menstruação e seus sinais do dia em "Meu Ciclo" ou usando o botão de registro.
+- **Ação:** Seus dados serão usados apenas neste aparelho. O que gostaria de registrar hoje?`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       };
       setChatMessages((prev) => [...prev, fallbackMsg]);

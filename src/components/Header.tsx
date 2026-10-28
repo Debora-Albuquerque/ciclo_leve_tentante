@@ -106,7 +106,7 @@ export const Header: React.FC<HeaderProps> = ({
               className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#F3EDE6] border border-[#E5DDD4] text-xs text-[#5C534A] hover:bg-[#EAE1D7] transition-colors"
             >
               <span className="w-2 h-2 rounded-full bg-[#A8BFA8]"></span>
-              <span>{profile.name || 'Débora'}</span>
+              <span>{profile.name || 'Minha conta'}</span>
             </button>
 
             {/* Mobile notification icon */}
