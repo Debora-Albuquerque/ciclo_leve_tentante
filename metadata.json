@@ -1,0 +1,6 @@
+{
+  "name": "CicloLeve",
+  "description": "Aplicativo minimalista e acolhedor de acompanhamento do ciclo menstrual, dias férteis e planejamento de gravidez.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
