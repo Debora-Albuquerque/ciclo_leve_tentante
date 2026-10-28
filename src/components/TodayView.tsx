@@ -157,9 +157,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 {summary?.conceptionChanceLabel || 'Sem dados suficientes'}
               </p>
               <p className="text-xs text-[#7D736A] mt-1 leading-relaxed">
-                {summary?.isOvulationToday
+                {!summary
+                  ? 'Adicione a data da menstruação para receber uma estimativa personalizada.'
+                  : summary.isOvulationToday
                   ? 'Hoje é o ápice da fertilidade! O óvulo está pronto para fecundação.'
-                  : summary?.isFertileNow
+                  : summary.isFertileNow
                   ? 'Os espermatozoides podem sobreviver até 5 dias nas vias férteis aguardando o óvulo.'
                   : summary?.phase === 'menstrual'
                   ? 'Fase de repouso e renovação do endométrio.'
@@ -180,7 +182,9 @@ export const TodayView: React.FC<TodayViewProps> = ({
                     ? 'Hoje!'
                     : summary && summary.daysToOvulation > 0
                     ? `em ${summary.daysToOvulation} dias`
-                    : 'Passou'}
+                    : summary
+                    ? 'Passou'
+                    : '--'}
                 </span>
               </div>
 
