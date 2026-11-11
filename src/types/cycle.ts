@@ -9,9 +9,9 @@ export type OvulationTestResult = 'negativo' | 'quase' | 'positivo' | 'pico';
 export interface UserProfile {
   name: string;
   goal: GoalType;
-  cycleLength: number; // e.g. 28
+  cycleLength: number | null;
   periodLength: number; // e.g. 5
-  lutealPhase: number; // e.g. 14
+  lutealPhase: number | null;
 }
 
 export interface PeriodEntry {

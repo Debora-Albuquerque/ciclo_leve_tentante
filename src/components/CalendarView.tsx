@@ -270,6 +270,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   ? 'Fase Menstrual'
                   : selectedStatus.phase === 'luteal'
                   ? 'Fase Lútea'
+                  : selectedStatus.phase === 'unknown'
+                  ? 'Sem estimativa'
                   : 'Fase Folicular'}
               </span>
             </div>
@@ -291,6 +293,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   ? 'Alta'
                   : selectedStatus.conceptionChance === 'media'
                   ? 'Média'
+                  : selectedStatus.conceptionChance === 'indisponivel'
+                  ? 'Sem estimativa'
                   : 'Baixa'}
               </span>
             </div>

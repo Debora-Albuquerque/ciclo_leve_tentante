@@ -72,9 +72,9 @@ export function getDefaultProfile(): UserProfile {
   return {
     name: '',
     goal: 'acompanhar',
-    cycleLength: 28,
+    cycleLength: null,
     periodLength: 5,
-    lutealPhase: 14,
+    lutealPhase: null,
   };
 }
 

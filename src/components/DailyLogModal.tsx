@@ -211,7 +211,7 @@ export const DailyLogModal: React.FC<DailyLogModalProps> = ({
                     : 'bg-white border-[#E5DDD4] text-[#5C534A] hover:bg-[#FAF0F4]'
                 }`}
               >
-                Sim, com carinho ❤️
+                Sim
               </button>
             </div>
           </div>

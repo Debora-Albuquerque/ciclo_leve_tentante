@@ -34,9 +34,9 @@ export const CycleSettingsView: React.FC<CycleSettingsViewProps> = ({
 }) => {
   const [name, setName] = useState(profile.name);
   const [goal, setGoal] = useState(profile.goal);
-  const [cycleLength, setCycleLength] = useState(profile.cycleLength);
+  const [cycleLength, setCycleLength] = useState<number | ''>(profile.cycleLength ?? '');
   const [periodLength, setPeriodLength] = useState(profile.periodLength);
-  const [lutealPhase, setLutealPhase] = useState(profile.lutealPhase);
+  const [lutealPhase, setLutealPhase] = useState<number | ''>(profile.lutealPhase ?? '');
   const [isSavedBanner, setIsSavedBanner] = useState(false);
 
   // New period form state
@@ -50,9 +50,9 @@ export const CycleSettingsView: React.FC<CycleSettingsViewProps> = ({
     onSaveProfile({
       name: name.trim() || 'Usuária',
       goal,
-      cycleLength: Number(cycleLength),
+      cycleLength: cycleLength === '' ? null : Number(cycleLength),
       periodLength: Number(periodLength),
-      lutealPhase: Number(lutealPhase),
+      lutealPhase: lutealPhase === '' ? null : Number(lutealPhase),
     });
     setIsSavedBanner(true);
     setTimeout(() => setIsSavedBanner(false), 3000);
@@ -165,27 +165,28 @@ export const CycleSettingsView: React.FC<CycleSettingsViewProps> = ({
           </div>
         </div>
 
-        {/* Sliders for Cycle Length, Period Length, Luteal Phase */}
+        {/* Personalized cycle parameters */}
         <div className="pt-2 border-t border-[#F0EBE6] space-y-4">
           <div>
             <div className="flex justify-between items-center text-xs mb-1">
               <span className="font-semibold text-[#4A423A]">
-                Duração média do Ciclo Menstrual
+                Duração habitual do Ciclo Menstrual
               </span>
               <span className="font-bold text-[#C45E3B] bg-[#FAF2EE] px-2.5 py-0.5 rounded-full">
-                {cycleLength} dias
+                {cycleLength === '' ? 'Não informada' : `${cycleLength} dias`}
               </span>
             </div>
             <input
-              type="range"
-              min="21"
+              type="number"
+              min="20"
               max="45"
+              placeholder="Ex.: 30"
               value={cycleLength}
-              onChange={(e) => setCycleLength(Number(e.target.value))}
-              className="w-full accent-[#E0A899] cursor-pointer"
+              onChange={(e) => setCycleLength(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-full px-3 py-2 rounded-xl bg-[#FAF7F5] border border-[#E0D7CE] text-sm text-[#2D2A26]"
             />
             <span className="text-[11px] text-[#8C827A] block mt-0.5">
-              Tempo do 1º dia da menstruação até o dia anterior à próxima (média comum: 28 dias).
+              Informe seus dias habituais. Se deixar em branco, o app usa a média dos até três intervalos mais recentes registrados.
             </span>
           </div>
 
@@ -214,22 +215,23 @@ export const CycleSettingsView: React.FC<CycleSettingsViewProps> = ({
           <div>
             <div className="flex justify-between items-center text-xs mb-1">
               <span className="font-semibold text-[#4A423A]">
-                Fase Lútea Estimada
+                Duração habitual da Fase Lútea
               </span>
               <span className="font-bold text-[#C45E3B] bg-[#FAF2EE] px-2.5 py-0.5 rounded-full">
-                {lutealPhase} dias
+                {lutealPhase === '' ? 'Não informada' : `${lutealPhase} dias`}
               </span>
             </div>
             <input
-              type="range"
-              min="10"
-              max="16"
+              type="number"
+              min="1"
+              max="30"
+              placeholder="Ex.: 12"
               value={lutealPhase}
-              onChange={(e) => setLutealPhase(Number(e.target.value))}
-              className="w-full accent-[#E0A899] cursor-pointer"
+              onChange={(e) => setLutealPhase(e.target.value === '' ? '' : Number(e.target.value))}
+              className="w-full px-3 py-2 rounded-xl bg-[#FAF7F5] border border-[#E0D7CE] text-sm text-[#2D2A26]"
             />
             <span className="text-[11px] text-[#8C827A] block mt-0.5">
-              Período entre a ovulação e a próxima menstruação (fisiologicamente estável em torno de 14 dias).
+              Dias entre a ovulação e a próxima menstruação. Sem esse dado, o app não estima a ovulação.
             </span>
           </div>
         </div>
@@ -252,7 +254,7 @@ export const CycleSettingsView: React.FC<CycleSettingsViewProps> = ({
               Histórico de Menstruações
             </h3>
             <span className="text-xs text-[#8C827A]">
-              Usado para calcular suas previsões de ovulação e fertilidade.
+              Os intervalos registrados personalizam a duração do ciclo. A ovulação só é estimada quando a fase lútea está informada.
             </span>
           </div>
 

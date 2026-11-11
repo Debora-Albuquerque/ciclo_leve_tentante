@@ -71,10 +71,15 @@ export const NotificationsView: React.FC<NotificationsViewProps> = ({
   };
 
   const handleTestFertileAlert = () => {
-    const days = summary?.daysToFertileWindow ?? 2;
-    const msg = days > 0
-      ? `Dica: Faltam ${days} dias para a sua janela fértil começar. Que tal preparar o coração?`
-      : `Dica: Sua janela fértil está aberta agora! Aproveite o momento com carinho e tranquilidade.`;
+    const days = summary?.daysToFertileWindow;
+    const msg =
+      days === null || days === undefined
+        ? 'Ainda não há dados pessoais suficientes para estimar a janela fértil.'
+        : days > 0
+        ? `Dica: Faltam ${days} dias para a sua janela fértil começar.`
+        : summary?.isFertileNow
+        ? 'Dica: Sua janela fértil calculada está aberta agora.'
+        : 'A janela fértil calculada já passou neste ciclo.';
 
     onTriggerSimulatedNotification(
       '🌸 Janela Fértil à Vista',

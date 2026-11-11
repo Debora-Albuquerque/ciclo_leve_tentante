@@ -16,7 +16,12 @@ const ai = new GoogleGenAI({
 export interface CycleContext {
   userName: string;
   goal: "tentando" | "acompanhar";
-  cycleLength: number;
+  cycleLength: number | null;
+  lutealPhase: number | null;
+  periodStartDates: string[];
+  ovulationDate: string | null;
+  fertileWindowStart: string | null;
+  fertileWindowEnd: string | null;
   periodLength: number;
   lastPeriodDate: string | null;
   currentCycleDay: number | null;
@@ -36,6 +41,16 @@ export interface CycleContext {
   }>;
 }
 
+function isClosedYesNoQuestion(message: string): boolean {
+  return (
+    /\?\s*$/.test(message.trim()) &&
+    /^(?:é|são|tem|tenho|estou|está|estão|foi|foram|pode|posso|devo|deu|houve|tive|teve|você|voce|há|existe|consta|aparece|já|registrei|anotei|meus dados|os dados|minha janela fértil|minha janela fertil|eu (?:tive|registrei|anotei|tenho))\b/i.test(
+      message.trim()
+    ) &&
+    !/^(?:pode me dizer|pode explicar|posso saber)\b/i.test(message.trim())
+  );
+}
+
 export async function handleCicloLeveChat(
   userMessage: string,
   history: Array<{ role: "user" | "model"; text: string }>,
@@ -49,7 +64,11 @@ O seu objetivo principal é ajudar a usuária a acompanhar seu ciclo menstrual, 
 ### CONTEXTO ATUAL DA USUÁRIA:
 - Nome da usuária: ${cycleContext.userName || "Usuária"}
 - Objetivo: ${cycleContext.goal === "tentando" ? "Tentando engravidar (Tentante)" : "Acompanhamento natural do ciclo"}
-- Duração média do ciclo: ${cycleContext.cycleLength} dias
+- Duração personalizada do ciclo: ${cycleContext.cycleLength !== null ? `${cycleContext.cycleLength} dias` : "Não informada"}
+- Fase lútea informada: ${cycleContext.lutealPhase !== null ? `${cycleContext.lutealPhase} dias` : "Não informada"}
+- Inícios de menstruação registrados (mais recentes): ${cycleContext.periodStartDates.join(", ") || "Nenhum"}
+- Ovulação calculada: ${cycleContext.ovulationDate || "Não estimada"}
+- Janela fértil calculada: ${cycleContext.fertileWindowStart && cycleContext.fertileWindowEnd ? `${cycleContext.fertileWindowStart} a ${cycleContext.fertileWindowEnd}` : "Não estimada"}
 - Duração média da menstruação: ${cycleContext.periodLength} dias
 - Início da última menstruação: ${cycleContext.lastPeriodDate || "Ainda não cadastrado"}
 - Dia atual do ciclo: ${cycleContext.currentCycleDay ? `Dia ${cycleContext.currentCycleDay}` : "Indefinido"}
@@ -61,26 +80,28 @@ O seu objetivo principal é ajudar a usuária a acompanhar seu ciclo menstrual, 
 - Registros recentes: ${JSON.stringify(cycleContext.recentLogs.slice(-3))}
 
 ### REGRAS ESTRITAS DE INTERAÇÃO E COMPORTAMENTO:
-1. Tom de Voz: Acolhedor, empático, claro, direto ao ponto e encorajador. Evite termos excessivamente frios ou rebuscados. Trate a usuária pelo nome (${cycleContext.userName || "querida"}) sempre que possível.
+0. Pergunta fechada ou de confirmação: se a usuária perguntar algo que possa ser respondido com sim ou não (inclusive sobre relações, registros ou dados pessoais), responda somente "Sim" ou "Não". No máximo, acrescente uma única linha curta se ela for estritamente necessária. Não use saudação, carinho, emojis, explicações extras, títulos nem sugestões de notificação. Baseie a resposta apenas nos dados disponíveis; se não for possível confirmar, diga "Não sei" sem inventar.
+1. Tom de Voz: Em respostas abertas, seja acolhedor, empático, claro, direto ao ponto e encorajador. Evite termos excessivamente frios ou rebuscados. Trate a usuária pelo nome (${cycleContext.userName || "querida"}) quando natural, sem adicionar floreios a respostas fechadas.
 2. Simplicidade: Respostas curtas, sem blocos gigantes de texto. Use listas ou tópicos para datas e resumos.
-3. Foco na Fertilidade: Sempre que o momento for fértil ou ela perguntar, destaque claramente a janela fértil e o dia provável da ovulação. Traga dicas leves e práticas (ex.: muco cervical tipo "clara de ovo", sensação de umidade, temperatura basal, bem-estar).
+3. Foco na Fertilidade: Informe janela fértil e ovulação somente quando estiverem calculadas no contexto. Não presuma duração padrão de ciclo ou fase lútea, nem calcule usando valores ausentes; quando faltarem dados, diga que ainda não é possível estimar. Considere os dias e datas informados pela usuária.
 4. Gestão de Dados (Inclusão, Edição e Exclusão):
    A usuária poderá pedir alterações via texto:
    - "adicione que minha menstruação desceu hoje" -> action type: "ADD_PERIOD_START", date: "hoje"
    - "apague o registro do dia 12" -> action type: "DELETE_ENTRY", date: "YYYY-MM-DD"
-   - "mude o último ciclo para 28 dias" -> action type: "UPDATE_CYCLE_LENGTH", cycleLength: 28
+   - "mude meu ciclo para [duração informada]" -> action type: "UPDATE_CYCLE_LENGTH", cycleLength: [duração informada]
    - "meu nome é [Nome]" -> action type: "UPDATE_PROFILE", userName: "[Nome]"
    - "hoje tive muco clara de ovo" -> action type: "LOG_ENTRY", date: "hoje", mucus: "clara_de_ovo"
    - "tive relações hoje" -> action type: "LOG_ENTRY", date: "hoje", intercourse: true
    Sempre confirme amigavelmente que o dado foi atualizado no aplicativo!
-5. Simulação de Notificações: Forneça uma sugestão amigável e carinhosa de lembrete/notificação no campo 'suggestedNotification' (ex: "Faltam 2 dias para a sua janela fértil começar. Que tal preparar o coração?").
+5. Simulação de Notificações: Para respostas abertas, forneça uma sugestão curta de lembrete no campo 'suggestedNotification' apenas quando houver uma estimativa válida. Para perguntas fechadas, deixe o campo vazio.
 6. Privacidade e Limitações: Lembre gentilmente em momentos oportunos que você é um apoio e organizador pessoal, não substituindo o acompanhamento de um(a) ginecologista.
 
-### FORMATO OBRIGATÓRIO DE RESPOSTA NO CAMPO 'replyText':
-Apresente a mensagem com esta estrutura limpa e acolhedora:
+### FORMATO DE RESPOSTA NO CAMPO 'replyText':
+Para perguntas abertas, apresente a mensagem com esta estrutura limpa e acolhedora:
 - **Resumo do Ciclo:** [Status atual, dia do ciclo, proximidade da janela fértil]
 - **Próximos Passos / Dica do Dia:** [Foco em bem-estar, sinais corporais ou dicas para tentantes]
 - **Ação:** [Confirmação de dados salvos ou pergunta simples para interagir]
+Para perguntas fechadas, não use essa estrutura: responda apenas "Sim" ou "Não", ou "Não sei" se os dados não permitirem confirmar.
 `;
 
   try {
@@ -107,7 +128,7 @@ Apresente a mensagem com esta estrutura limpa e acolhedora:
             replyText: {
               type: Type.STRING,
               description:
-                "Texto formatado nos 3 tópicos obrigatórios: Resumo do Ciclo, Próximos Passos / Dica do Dia, e Ação.",
+                "Resposta aberta nos 3 tópicos; perguntas fechadas exigem somente Sim, Não ou Não sei.",
             },
             suggestedNotification: {
               type: Type.STRING,
@@ -173,24 +194,39 @@ Apresente a mensagem com esta estrutura limpa e acolhedora:
     });
 
     const parsed = JSON.parse(response.text || "{}");
+    if (isClosedYesNoQuestion(userMessage)) {
+      const answer = parsed.replyText?.trim().match(/^(?:[-*]\s*)?(?:\*\*)?(sim|não|nao)\b/i)?.[1];
+      return {
+        ...parsed,
+        replyText: answer ? (answer.toLowerCase() === "sim" ? "Sim" : "Não") : "Não sei.",
+        suggestedNotification: "",
+      };
+    }
     return parsed;
   } catch (error) {
     console.error("Gemini API error, using warm intelligent fallback:", error);
     // Intelligent local fallback adhering to all rules
     const name = cycleContext.userName || "usuária";
-    const cycleDay = cycleContext.currentCycleDay || 14;
+    const cycleDay = cycleContext.currentCycleDay;
     const isFertile = cycleContext.isFertileNow;
     const isOvulation = cycleContext.isOvulationToday;
 
-    let summary = `Você está no **Dia ${cycleDay}** do seu ciclo.`;
-    if (isOvulation) {
+    let summary = cycleDay
+      ? `Você está no **Dia ${cycleDay}** do seu ciclo.`
+      : "Ainda não há dados suficientes para identificar o dia do ciclo.";
+    if (isOvulation && cycleContext.ovulationDate) {
       summary += ` Hoje é o seu **dia provável de ovulação** (ápice da fertilidade)!`;
     } else if (isFertile) {
       summary += ` Você está em plena **janela fértil**!`;
-    } else if (cycleContext.daysToFertileWindow && cycleContext.daysToFertileWindow > 0) {
+    } else if (
+      cycleContext.daysToFertileWindow !== null &&
+      cycleContext.daysToFertileWindow > 0
+    ) {
       summary += ` Faltam cerca de **${cycleContext.daysToFertileWindow} dias** para a sua janela fértil.`;
+    } else if (cycleContext.daysToNextPeriod !== null) {
+      summary += ` Próxima menstruação prevista para daqui a ${cycleContext.daysToNextPeriod} dias.`;
     } else {
-      summary += ` Fase lútea em andamento. Próxima menstruação prevista para daqui a ${cycleContext.daysToNextPeriod ?? 7} dias.`;
+      summary += " Ainda não é possível estimar a ovulação ou a próxima menstruação.";
     }
 
     let tip = isFertile
@@ -200,6 +236,14 @@ Apresente a mensagem com esta estrutura limpa e acolhedora:
     // Simple intent detection for offline/fallback mode
     let action: Record<string, any> = { type: "NONE" };
     const lower = userMessage.toLowerCase();
+    if (isClosedYesNoQuestion(userMessage)) {
+      return {
+        replyText: "Não sei.",
+        suggestedNotification: "",
+        action: { type: "NONE" },
+      };
+    }
+
     if (lower.includes("desceu") || lower.includes("menstrua") || lower.includes("começou")) {
       action = { type: "ADD_PERIOD_START", date: "hoje" };
     } else if (lower.includes("apague") || lower.includes("exclua") || lower.includes("deletar")) {
@@ -209,8 +253,8 @@ Apresente a mensagem com esta estrutura limpa e acolhedora:
     }
 
     return {
-      replyText: `- **Resumo do Ciclo:** Olá, ${name}! ${summary}\n- **Próximos Passos / Dica do Dia:** ${tip}\n- **Ação:** Seus dados foram checados com carinho. Deseja registrar algum sintoma ou sensação hoje?`,
-      suggestedNotification: isFertile
+      replyText: `- **Resumo do Ciclo:** Olá, ${name}! ${summary}\n- **Próximos Passos / Dica do Dia:** ${tip}\n- **Ação:** Deseja registrar algum sintoma ou sensação hoje?`,
+      suggestedNotification: isFertile && cycleContext.fertileWindowStart && cycleContext.fertileWindowEnd
         ? `🌸 Dica CicloLeve: Sua janela fértil está aberta. Que tal dedicar um tempo leve para vocês?`
         : `Dica CicloLeve: Cuide do seu bem-estar hoje, ${name}. Beba água e respire fundo.`,
       action,

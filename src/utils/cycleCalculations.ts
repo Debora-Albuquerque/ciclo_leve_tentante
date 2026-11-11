@@ -44,7 +44,7 @@ export interface DayStatus {
   isToday: boolean;
   cycleDay: number | null;
   phase: 'menstrual' | 'follicular' | 'fertile' | 'ovulation' | 'luteal' | 'unknown';
-  conceptionChance: 'baixa' | 'media' | 'alta' | 'pico' | 'menstruacao';
+  conceptionChance: 'baixa' | 'media' | 'alta' | 'pico' | 'menstruacao' | 'indisponivel';
   isPeriod: boolean;
   isFertile: boolean;
   isOvulation: boolean;
@@ -53,20 +53,49 @@ export interface DayStatus {
 
 export interface CurrentCycleSummary {
   currentCycleDay: number;
-  phase: 'menstrual' | 'follicular' | 'fertile' | 'ovulation' | 'luteal';
+  cycleLength: number | null;
+  phase: 'menstrual' | 'follicular' | 'fertile' | 'ovulation' | 'luteal' | 'unknown';
   phaseLabel: string;
-  conceptionChance: 'baixa' | 'media' | 'alta' | 'pico' | 'menstruacao';
+  conceptionChance: 'baixa' | 'media' | 'alta' | 'pico' | 'menstruacao' | 'indisponivel';
   conceptionChanceLabel: string;
   isFertileNow: boolean;
   isOvulationToday: boolean;
-  ovulationDateStr: string;
-  fertileWindowStartStr: string;
-  fertileWindowEndStr: string;
-  nextPeriodDateStr: string;
-  daysToFertileWindow: number; // 0 if currently in it, negative if passed
-  daysToOvulation: number;
-  daysToNextPeriod: number;
+  ovulationDateStr: string | null;
+  fertileWindowStartStr: string | null;
+  fertileWindowEndStr: string | null;
+  nextPeriodDateStr: string | null;
+  daysToFertileWindow: number | null;
+  daysToOvulation: number | null;
+  daysToNextPeriod: number | null;
   lastPeriodStartDate: string;
+}
+
+export function getPersonalizedCycleLength(
+  profile: UserProfile,
+  periods: PeriodEntry[]
+): number | null {
+  const sorted = [...periods].sort(
+    (a, b) => parseDateISO(a.startDate).getTime() - parseDateISO(b.startDate).getTime()
+  );
+  const observedLengths: number[] = [];
+
+  for (let i = 1; i < sorted.length; i++) {
+    const length = diffDays(parseDateISO(sorted[i].startDate), parseDateISO(sorted[i - 1].startDate));
+    if (length >= 20 && length <= 45) observedLengths.push(length);
+  }
+
+  if (profile.cycleLength !== null && profile.cycleLength >= 20 && profile.cycleLength <= 45) {
+    return profile.cycleLength;
+  }
+
+  if (observedLengths.length > 0) {
+    return Math.round(
+      observedLengths.slice(-3).reduce((total, length) => total + length, 0) /
+        Math.min(observedLengths.length, 3)
+    );
+  }
+
+  return null;
 }
 
 export function calculateCycleSummary(
@@ -86,35 +115,38 @@ export function calculateCycleSummary(
 
   const daysPassed = diffDays(today, periodStart);
   const currentCycleDay = daysPassed >= 0 ? daysPassed + 1 : 1;
-
-  // Ovulation is typically cycleLength - lutealPhase days after period start
-  const ovulationOffset = profile.cycleLength - profile.lutealPhase;
-  const ovulationDate = addDays(periodStart, ovulationOffset);
-  const ovulationDateStr = formatDateISO(ovulationDate);
-
-  // Fertile window: 5 days before ovulation up to ovulation day
-  const fertileStart = addDays(ovulationDate, -5);
+  const cycleLength = getPersonalizedCycleLength(profile, periods);
+  const lutealPhase = profile.lutealPhase;
+  const ovulationOffset =
+    cycleLength !== null && lutealPhase !== null && lutealPhase > 0 && lutealPhase < cycleLength
+      ? cycleLength - lutealPhase - 1
+      : null;
+  const ovulationDate = ovulationOffset === null ? null : addDays(periodStart, ovulationOffset);
+  const ovulationDateStr = ovulationDate ? formatDateISO(ovulationDate) : null;
+  const fertileStart = ovulationDate ? addDays(ovulationDate, -5) : null;
   const fertileEnd = ovulationDate;
-  const fertileWindowStartStr = formatDateISO(fertileStart);
-  const fertileWindowEndStr = formatDateISO(fertileEnd);
-
-  // Next expected period
-  const nextPeriod = addDays(periodStart, profile.cycleLength);
-  const nextPeriodDateStr = formatDateISO(nextPeriod);
-
-  const daysToOvulation = diffDays(ovulationDate, today);
-  const daysToFertileWindow = diffDays(fertileStart, today);
-  const daysToNextPeriod = diffDays(nextPeriod, today);
+  const fertileWindowStartStr = fertileStart ? formatDateISO(fertileStart) : null;
+  const fertileWindowEndStr = fertileEnd ? formatDateISO(fertileEnd) : null;
+  const nextPeriod = cycleLength === null ? null : addDays(periodStart, cycleLength);
+  const nextPeriodDateStr = nextPeriod ? formatDateISO(nextPeriod) : null;
+  const daysToOvulation = ovulationDate ? diffDays(ovulationDate, today) : null;
+  const daysToFertileWindow = fertileStart ? diffDays(fertileStart, today) : null;
+  const daysToNextPeriod = nextPeriod ? diffDays(nextPeriod, today) : null;
 
   const isPeriod = daysPassed >= 0 && daysPassed < profile.periodLength;
-  const isOvulationToday = todayStr === ovulationDateStr;
+  const isOvulationToday = ovulationDateStr !== null && todayStr === ovulationDateStr;
   const isFertileNow =
-    today.getTime() >= fertileStart.getTime() && today.getTime() <= fertileEnd.getTime();
+    fertileStart !== null &&
+    fertileEnd !== null &&
+    today.getTime() >= fertileStart.getTime() &&
+    today.getTime() <= fertileEnd.getTime();
 
-  let phase: CurrentCycleSummary['phase'] = 'follicular';
-  let phaseLabel = 'Fase Folicular';
-  let conceptionChance: CurrentCycleSummary['conceptionChance'] = 'baixa';
-  let conceptionChanceLabel = 'Baixa probabilidade';
+  let phase: CurrentCycleSummary['phase'] = ovulationDate ? 'follicular' : 'unknown';
+  let phaseLabel = ovulationDate ? 'Fase Folicular' : 'Fase não estimada';
+  let conceptionChance: CurrentCycleSummary['conceptionChance'] = ovulationDate
+    ? 'baixa'
+    : 'indisponivel';
+  let conceptionChanceLabel = ovulationDate ? 'Baixa probabilidade' : 'Sem estimativa';
 
   if (isPeriod) {
     phase = 'menstrual';
@@ -129,9 +161,12 @@ export function calculateCycleSummary(
   } else if (isFertileNow) {
     phase = 'fertile';
     phaseLabel = 'Janela Fértil';
-    conceptionChance = daysToOvulation <= 2 ? 'alta' : 'media';
-    conceptionChanceLabel = daysToOvulation <= 2 ? 'Alta probabilidade' : 'Média probabilidade';
-  } else if (today.getTime() > ovulationDate.getTime()) {
+    conceptionChance = daysToOvulation !== null && daysToOvulation <= 2 ? 'alta' : 'media';
+    conceptionChanceLabel =
+      daysToOvulation !== null && daysToOvulation <= 2
+        ? 'Alta probabilidade'
+        : 'Média probabilidade';
+  } else if (ovulationDate && today.getTime() > ovulationDate.getTime()) {
     phase = 'luteal';
     phaseLabel = 'Fase Lútea';
     conceptionChance = 'baixa';
@@ -140,6 +175,7 @@ export function calculateCycleSummary(
 
   return {
     currentCycleDay,
+    cycleLength,
     phase,
     phaseLabel,
     conceptionChance,
@@ -173,7 +209,7 @@ export function getStatusForDate(
       isToday,
       cycleDay: null,
       phase: 'unknown',
-      conceptionChance: 'baixa',
+      conceptionChance: 'indisponivel',
       isPeriod: false,
       isFertile: false,
       isOvulation: false,
@@ -198,19 +234,34 @@ export function getStatusForDate(
 
   const pStart = parseDateISO(activePeriod.startDate);
   const diffFromStart = diffDays(targetDate, pStart);
-  const cycleDay = diffFromStart >= 0 ? (diffFromStart % profile.cycleLength) + 1 : null;
-
-  const ovulationOffset = profile.cycleLength - profile.lutealPhase;
-  const ovulationDate = addDays(pStart, ovulationOffset);
-  const fertileStart = addDays(ovulationDate, -5);
+  const cycleLength = getPersonalizedCycleLength(profile, periods);
+  const cycleDay =
+    diffFromStart < 0
+      ? null
+      : cycleLength === null
+      ? diffFromStart + 1
+      : (diffFromStart % cycleLength) + 1;
+  const ovulationOffset =
+    cycleLength !== null &&
+    profile.lutealPhase !== null &&
+    profile.lutealPhase > 0 &&
+    profile.lutealPhase < cycleLength
+      ? cycleLength - profile.lutealPhase - 1
+      : null;
+  const ovulationDate = ovulationOffset === null ? null : addDays(pStart, ovulationOffset);
+  const fertileStart = ovulationDate ? addDays(ovulationDate, -5) : null;
   const fertileEnd = ovulationDate;
 
   const isPeriod = diffFromStart >= 0 && diffFromStart < profile.periodLength;
-  const isOvulation = formatDateISO(targetDate) === formatDateISO(ovulationDate);
-  const isFertile = targetDate >= fertileStart && targetDate <= fertileEnd;
+  const isOvulation = ovulationDate !== null && formatDateISO(targetDate) === formatDateISO(ovulationDate);
+  const isFertile =
+    fertileStart !== null &&
+    fertileEnd !== null &&
+    targetDate >= fertileStart &&
+    targetDate <= fertileEnd;
 
-  let phase: DayStatus['phase'] = 'follicular';
-  let conceptionChance: DayStatus['conceptionChance'] = 'baixa';
+  let phase: DayStatus['phase'] = ovulationDate ? 'follicular' : 'unknown';
+  let conceptionChance: DayStatus['conceptionChance'] = ovulationDate ? 'baixa' : 'indisponivel';
 
   if (isPeriod) {
     phase = 'menstrual';
@@ -220,9 +271,9 @@ export function getStatusForDate(
     conceptionChance = 'pico';
   } else if (isFertile) {
     phase = 'fertile';
-    const distToOv = Math.abs(diffDays(ovulationDate, targetDate));
+    const distToOv = Math.abs(diffDays(ovulationDate!, targetDate));
     conceptionChance = distToOv <= 2 ? 'alta' : 'media';
-  } else if (targetDate > ovulationDate) {
+  } else if (ovulationDate && targetDate > ovulationDate) {
     phase = 'luteal';
     conceptionChance = 'baixa';
   }
@@ -265,6 +316,10 @@ export function getDailyGentleTip(summary: CurrentCycleSummary | null, isTryingT
     return isTryingToConceive
       ? 'Os níveis de estrogênio estão subindo e preparando os folículos. Mantenha uma alimentação rica em nutrientes coloridos e hidrate-se com carinho.'
       : 'Sensação crescente de energia e foco. Aproveite para planejar novas metas da semana.';
+  }
+
+  if (summary.phase === 'unknown') {
+    return 'Informe a duração habitual do seu ciclo e da fase lútea, ou registre mais inícios de menstruação, para personalizar as estimativas.';
   }
 
   // Luteal phase

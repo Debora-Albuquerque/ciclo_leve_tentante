@@ -226,7 +226,12 @@ export default function App() {
     const cycleContext = {
       userName: profile.name,
       goal: profile.goal,
-      cycleLength: profile.cycleLength,
+      cycleLength: summary?.cycleLength ?? profile.cycleLength,
+      lutealPhase: profile.lutealPhase,
+      periodStartDates: periods.map((period) => period.startDate).slice(0, 6),
+      ovulationDate: summary?.ovulationDateStr ?? null,
+      fertileWindowStart: summary?.fertileWindowStartStr ?? null,
+      fertileWindowEnd: summary?.fertileWindowEndStr ?? null,
       periodLength: profile.periodLength,
       lastPeriodDate: summary?.lastPeriodStartDate || null,
       currentCycleDay: summary?.currentCycleDay || null,

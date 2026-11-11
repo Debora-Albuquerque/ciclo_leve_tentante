@@ -50,9 +50,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
 
   // Ring progress
   const cycleDay = summary?.currentCycleDay;
-  const cycleLength = profile.cycleLength || 28;
+  const cycleLength = summary?.cycleLength;
   const progressPercent = cycleDay
-    ? Math.min(100, Math.round((cycleDay / cycleLength) * 100))
+    ? cycleLength
+      ? Math.min(100, Math.round((cycleDay / cycleLength) * 100))
+      : 0
     : 0;
 
   return (
@@ -127,7 +129,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 Dia {summary?.currentCycleDay ?? '--'}
               </span>
               <span className="text-xs text-[#7A7067] font-medium mt-1">
-                {summary ? `de ${profile.cycleLength} dias` : 'Aguardando registro'}
+                {summary?.cycleLength
+                  ? `de ${summary.cycleLength} dias`
+                  : summary
+                  ? 'Duração não informada'
+                  : 'Aguardando registro'}
               </span>
 
               {/* Status pill */}
@@ -165,6 +171,8 @@ export const TodayView: React.FC<TodayViewProps> = ({
                   ? 'Os espermatozoides podem sobreviver até 5 dias nas vias férteis aguardando o óvulo.'
                   : summary?.phase === 'menstrual'
                   ? 'Fase de repouso e renovação do endométrio.'
+                  : summary?.phase === 'unknown'
+                  ? 'Informe a duração habitual do ciclo e da fase lútea para receber estimativas personalizadas.'
                   : 'Fase de equilíbrio hormonal. Mantenha hábitos suaves.'}
               </p>
             </div>
@@ -175,14 +183,16 @@ export const TodayView: React.FC<TodayViewProps> = ({
               <div className="bg-[#FAF7F5] p-3 rounded-2xl border border-[#EBE3DC] text-center">
                 <span className="text-[11px] text-[#8C827A] block">Ovulação Provável</span>
                 <span className="text-sm font-semibold text-[#2D2A26] block mt-0.5">
-                  {summary ? formatShortDate(summary.ovulationDateStr) : '--'}
+                  {summary?.ovulationDateStr ? formatShortDate(summary.ovulationDateStr) : '--'}
                 </span>
                 <span className="text-[10px] text-[#A66C59] font-medium block mt-0.5">
                   {summary?.daysToOvulation === 0
                     ? 'Hoje!'
-                    : summary && summary.daysToOvulation > 0
+                    : summary?.daysToOvulation !== null &&
+                      summary?.daysToOvulation !== undefined &&
+                      summary.daysToOvulation > 0
                     ? `em ${summary.daysToOvulation} dias`
-                    : summary
+                    : summary?.daysToOvulation !== null && summary?.daysToOvulation !== undefined
                     ? 'Passou'
                     : '--'}
                 </span>
@@ -192,14 +202,18 @@ export const TodayView: React.FC<TodayViewProps> = ({
               <div className="bg-[#FAF7F5] p-3 rounded-2xl border border-[#EBE3DC] text-center">
                 <span className="text-[11px] text-[#8C827A] block">Janela Fértil</span>
                 <span className="text-sm font-semibold text-[#2D2A26] block mt-0.5">
-                  {summary
+                  {summary?.fertileWindowStartStr && summary.fertileWindowEndStr
                     ? `${formatShortDate(summary.fertileWindowStartStr)} - ${formatShortDate(
                         summary.fertileWindowEndStr
                       )}`
                     : '--'}
                 </span>
                 <span className="text-[10px] text-[#558255] font-medium block mt-0.5">
-                  {summary?.isFertileNow ? 'Aberta agora' : summary ? 'Período estimado' : '--'}
+                  {summary?.isFertileNow
+                    ? 'Aberta agora'
+                    : summary?.fertileWindowStartStr
+                    ? 'Período estimado'
+                    : 'Sem estimativa'}
                 </span>
               </div>
 
@@ -207,10 +221,12 @@ export const TodayView: React.FC<TodayViewProps> = ({
               <div className="col-span-2 sm:col-span-1 bg-[#FAF7F5] p-3 rounded-2xl border border-[#EBE3DC] text-center">
                 <span className="text-[11px] text-[#8C827A] block">Próximo Ciclo</span>
                 <span className="text-sm font-semibold text-[#2D2A26] block mt-0.5">
-                  {summary ? formatShortDate(summary.nextPeriodDateStr) : '--'}
+                  {summary?.nextPeriodDateStr ? formatShortDate(summary.nextPeriodDateStr) : '--'}
                 </span>
                 <span className="text-[10px] text-[#8C827A] font-medium block mt-0.5">
-                  {summary && summary.daysToNextPeriod > 0
+                  {summary?.daysToNextPeriod !== null &&
+                  summary?.daysToNextPeriod !== undefined &&
+                  summary.daysToNextPeriod > 0
                     ? `em ${summary.daysToNextPeriod} dias`
                     : '--'}
                 </span>

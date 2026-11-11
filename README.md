@@ -12,7 +12,8 @@ Muitos aplicativos de ciclo menstrual disponíveis no mercado são carregados de
 
 ## ✨ Funcionalidades Principais
 * **Simplicidade Extrema:** Conversa direta e sem rodeios.
-* **Foco em Tentantes:** Destaque para janela fértil e ovulação.
+* **Ciclo Personalizado:** Usa a duração informada ou os até três intervalos mais recentes registrados; não assume um ciclo padrão.
+* **Foco em Tentantes:** Estima janela fértil e ovulação apenas quando há duração de ciclo e fase lútea informadas.
 * **Flexibilidade:** Inclusão e exclusão de dados via chat de forma natural.
 * **Lembretes e Acolhimento:** Notificações amigáveis simuladas/locais.
 
