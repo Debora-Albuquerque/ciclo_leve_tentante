@@ -15,14 +15,19 @@ import {
   CurrentCycleSummary,
   formatFriendlyDate,
   getDailyGentleTip,
-  formatShortDate
+  formatShortDate,
+  formatDateISO,
+  parseDateISO,
+  addDays
 } from '../utils/cycleCalculations';
 
 interface TodayViewProps {
   summary: CurrentCycleSummary | null;
   profile: UserProfile;
   todayLog?: DailyLog;
+  dailyLogs: Record<string, DailyLog>;
   onOpenLogModal: () => void;
+  onTogglePeriodFlow: (dateStr: string) => void;
   onNavigateToTab: (tab: 'calendar' | 'chat' | 'notifications' | 'settings') => void;
   onQuickChatPrompt: (prompt: string) => void;
 }
@@ -31,7 +36,9 @@ export const TodayView: React.FC<TodayViewProps> = ({
   summary,
   profile,
   todayLog,
+  dailyLogs,
   onOpenLogModal,
+  onTogglePeriodFlow,
   onNavigateToTab,
   onQuickChatPrompt,
 }) => {
@@ -56,6 +63,25 @@ export const TodayView: React.FC<TodayViewProps> = ({
       ? Math.min(100, Math.round((cycleDay / cycleLength) * 100))
       : 0
     : 0;
+  const trackedCycleDays = summary
+    ? Math.min(summary.currentCycleDay, 45)
+    : 0;
+  const cycleDayEntries = summary
+    ? Array.from({ length: trackedCycleDays }, (_, index) => {
+        const day = index + 1;
+        const dateStr = formatDateISO(
+          addDays(parseDateISO(summary.lastPeriodStartDate), index)
+        );
+        const flow = dailyLogs[dateStr]?.flow;
+        return {
+          day,
+          dateStr,
+          hasFlow: Boolean(flow && flow !== 'nenhum'),
+          isFuture: dateStr > formatDateISO(new Date()),
+        };
+      })
+    : [];
+  const recordedFlowDays = cycleDayEntries.filter((entry) => entry.hasFlow).length;
 
   return (
     <div className="space-y-6 pb-20 md:pb-8">
@@ -235,6 +261,71 @@ export const TodayView: React.FC<TodayViewProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Quick menstrual flow tracking */}
+      <section className="rounded-3xl bg-white border border-[#EBE3DC] p-5 sm:p-6 shadow-sm">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-[#FBEBEB] flex items-center justify-center text-[#B54A4A] shrink-0">
+            <Droplets className="w-5 h-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="font-serif text-lg font-semibold text-[#2D2A26]">
+                Fluxo menstrual neste ciclo
+              </h2>
+              {summary && (
+                <span className="text-xs font-semibold text-[#B54A4A] bg-[#FBEBEB] px-2.5 py-1 rounded-full">
+                  {recordedFlowDays} {recordedFlowDays === 1 ? 'dia marcado' : 'dias marcados'}
+                </span>
+              )}
+            </div>
+            {summary ? (
+              <>
+                <p className="text-xs text-[#7D736A] mt-1">
+                  Toque nos dias em que houve fluxo para marcar ou desmarcar.
+                </p>
+                <div className="mt-4 -mx-1 px-1 pb-1 flex gap-2 overflow-x-auto">
+                  {cycleDayEntries.map(({ day, dateStr, hasFlow, isFuture }) => (
+                    <button
+                      key={dateStr}
+                      type="button"
+                      disabled={isFuture}
+                      aria-pressed={hasFlow}
+                      aria-label={`Dia ${day} do ciclo, ${formatFriendlyDate(dateStr)}${hasFlow ? ', fluxo marcado' : ', fluxo não marcado'}`}
+                      onClick={() => onTogglePeriodFlow(dateStr)}
+                      className={`shrink-0 w-14 min-h-16 rounded-2xl border flex flex-col items-center justify-center gap-0.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
+                        hasFlow
+                          ? 'bg-[#FBEBEB] border-[#D97777] text-[#B54A4A]'
+                          : 'bg-[#FAF7F5] border-[#E5DDD4] text-[#6D6359] hover:border-[#D9A49A]'
+                      }`}
+                    >
+                      <span className="text-[11px] font-semibold">Dia {day}</span>
+                      <span className="text-[10px]">{formatShortDate(dateStr)}</span>
+                      {hasFlow && <CheckCircle2 className="w-3.5 h-3.5 mt-0.5" />}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-[#8C827A] mt-2">
+                  Este registro não altera sua média de dias menstruada nas configurações.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-[#7D736A] mt-1">
+                  Registre o início da menstruação para marcar os dias de fluxo deste ciclo.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onNavigateToTab('calendar')}
+                  className="mt-3 text-xs font-semibold text-[#B54A4A] hover:underline"
+                >
+                  Abrir calendário
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Dica Acolhedora do Dia (Evidência Científica & Carinho) */}
       <div className="rounded-3xl bg-[#FAF5F0] border border-[#E6DCD2] p-5 sm:p-6 shadow-sm">

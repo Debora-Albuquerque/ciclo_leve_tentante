@@ -179,6 +179,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {/* Sub-indicators: Cycle Day or Icons */}
                 <div className="flex items-center gap-1 text-[9px] font-medium opacity-85">
                   {status.cycleDay ? <span>D{status.cycleDay}</span> : null}
+                  {log?.flow && log.flow !== 'nenhum' && (
+                    <Droplets
+                      className="w-2.5 h-2.5 text-[#B54A4A]"
+                      aria-label="Fluxo menstrual registrado"
+                    />
+                  )}
                   {log?.intercourse && <Heart className="w-2.5 h-2.5 fill-[#9E4A6F] text-[#9E4A6F]" />}
                   {log?.mucus === 'clara_de_ovo' && <Droplets className="w-2.5 h-2.5 text-[#3D663D]" />}
                 </div>

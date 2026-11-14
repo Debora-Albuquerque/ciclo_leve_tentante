@@ -155,6 +155,20 @@ export default function App() {
     showToast('✓ Sintomas e sinais registrados.');
   };
 
+  const handleTogglePeriodFlow = (dateStr: string) => {
+    const hasFlow = Boolean(
+      dailyLogs[dateStr]?.flow && dailyLogs[dateStr].flow !== 'nenhum'
+    );
+    setDailyLogs((prev) => ({
+      ...prev,
+      [dateStr]: {
+        ...(prev[dateStr] || { date: dateStr }),
+        flow: hasFlow ? 'nenhum' : 'moderado',
+      },
+    }));
+    showToast(hasFlow ? 'Fluxo menstrual desmarcado.' : 'Fluxo menstrual marcado.');
+  };
+
   const handleDeleteDailyLog = (dateStr: string) => {
     setDailyLogs((prev) => {
       const copy = { ...prev };
@@ -371,9 +385,11 @@ export default function App() {
             summary={summary}
             profile={profile}
             todayLog={dailyLogs[formatDateISO(new Date())]}
+            dailyLogs={dailyLogs}
             onOpenLogModal={() =>
               setLogModal({ isOpen: true, dateStr: formatDateISO(new Date()) })
             }
+            onTogglePeriodFlow={handleTogglePeriodFlow}
             onNavigateToTab={(tab) => setActiveTab(tab)}
             onQuickChatPrompt={handleQuickChatPrompt}
           />
